@@ -1,558 +1,538 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Study Time Tracker</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-<style>
-  :root {
-    --color-bg: #fefefe;
-    --color-bg-gradient: linear-gradient(135deg, #f9fafb 0%, #e2e8f0 100%);
-    --color-text: #222222;
-    --color-primary: #3182ce;
-    --color-primary-dark: #2b6cb0;
-    --color-error: #e53e3e;
-    --color-form-bg: #fff;
-    --color-border: #cbd5e0;
-    --color-shadow: rgba(99, 99, 99, 0.1);
-    --color-chart-bg: #fff;
-  }
-
-  [data-theme='dark'] {
-    --color-bg: #121212;
-    --color-bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-    --color-text: #e2e8f0;
-    --color-primary: #63b3ed;
-    --color-primary-dark: #4299e1;
-    --color-error: #fc8181;
-    --color-form-bg: #1e293b;
-    --color-border: #374151;
-    --color-shadow: rgba(0, 0, 0, 0.7);
-    --color-chart-bg: #1e293b;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    font-family: 'Inter', sans-serif;
-    background: var(--color-bg-gradient);
-    margin: 0;
-    padding: 2rem 1rem;
-    color: var(--color-text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: background 0.4s ease, color 0.4s ease;
-  }
-  h1 {
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--color-text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Dark Mode Toggle Switch */
-  .toggle-wrapper {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    user-select: none;
-  }
-  .toggle-switch {
-    position: relative;
-    width: 50px;
-    height: 26px;
-    display: inline-block;
-  }
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    background-color: #ccc;
-    border-radius: 34px;
-    top: 0; left: 0; right: 0; bottom: 0;
-    transition: 0.4s;
-  }
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 20px; width: 20px;
-    left: 3px; bottom: 3px;
-    background-color: white;
-    border-radius: 50%;
-    transition: 0.4s;
-  }
-  input:checked + .slider {
-    background-color: var(--color-primary);
-  }
-  input:checked + .slider:before {
-    transform: translateX(24px);
-  }
-
-  .toggle-label {
-    font-weight: 600;
-    margin-right: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--color-text);
-    vertical-align: middle;
-  }
-
-  .container {
-    background: var(--color-form-bg);
-    max-width: 700px;
-    width: 100%;
-    border-radius: 12px;
-    padding: 2rem 2.5rem;
-    box-shadow: 0 8px 24px var(--color-shadow);
-    transition: background 0.4s ease, box-shadow 0.4s ease;
-  }
-  form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.25rem 1.5rem;
-    margin-bottom: 1.5rem;
-    justify-content: space-between;
-  }
-  label {
-    flex: 1 1 200px;
-    display: flex;
-    flex-direction: column;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--color-text);
-  }
-  input[type="date"],
-  input[type="number"],
-  input[type="text"] {
-    margin-top: 0.4rem;
-    padding: 0.6rem 0.75rem;
-    border: 1.8px solid var(--color-border);
-    border-radius: 8px;
-    font-size: 1rem;
-    background: var(--color-bg);
-    color: var(--color-text);
-    transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
-  }
-  input[type="date"]:focus,
-  input[type="number"]:focus,
-  input[type="text"]:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 6px var(--color-primary);
-  }
-  button[type="submit"],
-  #resetBtn {
-    background: var(--color-primary);
-    color: white;
-    border: none;
-    padding: 0.8rem 1.8rem;
-    border-radius: 10px;
-    font-size: 1.05rem;
-    cursor: pointer;
-    flex: 1 1 100%;
-    max-width: 240px;
-    font-weight: 600;
-    transition: background-color 0.25s ease;
-    align-self: flex-end;
-  }
-  button[type="submit"]:hover {
-    background: var(--color-primary-dark);
-  }
-  #resetBtn {
-    background: var(--color-error);
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-  }
-  #resetBtn:hover {
-    background: #c53030;
-  }
-  .chart-container {
-    margin-bottom: 3rem;
-  }
-  h2 {
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 0.75rem;
-    border-left: 5px solid var(--color-primary);
-    padding-left: 0.75rem;
-  }
-  canvas {
-    background: var(--color-chart-bg);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(99, 99, 99, 0.05);
-    width: 100% !important;
-    max-height: 350px;
-    transition: background 0.4s ease;
-  }
-  @media (max-width: 600px) {
-    form {
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Study Time Tracker - Multiple Subject Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --color-bg: #fefefe;
+      --color-bg-gradient: linear-gradient(135deg, #f9fafb 0%, #e2e8f0 100%);
+      --color-text: #222222;
+      --color-primary: #3182ce;
+      --color-primary-dark: #2b6cb0;
+      --color-error: #e53e3e;
+      --color-form-bg: #fff;
+      --color-border: #cbd5e0;
+      --color-shadow: rgba(99, 99, 99, 0.1);
+      --color-chart-bg: #fff;
+      --font-family: 'Inter', sans-serif;
+    }
+    [data-theme='dark'] {
+      --color-bg: #121212;
+      --color-bg-gradient: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+      --color-text: #e2e8f0;
+      --color-primary: #63b3ed;
+      --color-primary-dark: #4299e1;
+      --color-error: #fc8181;
+      --color-form-bg: #1e293b;
+      --color-border: #374151;
+      --color-shadow: rgba(0, 0, 0, 0.7);
+      --color-chart-bg: #1e293b;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: var(--font-family);
+      background: var(--color-bg-gradient);
+      margin: 0;
+      padding: 2rem 1rem;
+      color: var(--color-text);
+      min-height: 100vh;
+      display: flex;
       flex-direction: column;
+      align-items: center;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+    h1 {
+      font-weight: 600;
+      margin-bottom: 2rem;
+      color: var(--color-text);
+      text-align: center;
+      font-size: 1.9rem;
+      user-select: none;
+    }
+    .toggle-wrapper {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+      display: inline-block;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      background-color: #ccc;
+      border-radius: 34px;
+      top: 0; left: 0; right: 0; bottom: 0;
+      transition: 0.4s;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px; width: 20px;
+      left: 3px; bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.4s;
+    }
+    input:checked + .slider {
+      background-color: var(--color-primary);
+    }
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+    .container {
+      background: var(--color-form-bg);
+      max-width: 640px;
+      width: 100%;
+      border-radius: 12px;
+      padding: 2rem 2.5rem 3rem;
+      box-shadow: 0 8px 24px var(--color-shadow);
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+      user-select: none;
+      margin-bottom: 3rem;
+    }
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      justify-content: space-between;
+    }
+    label {
+      flex: 1 1 200px;
+      display: flex;
+      flex-direction: column;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--color-text);
+    }
+    input[type="date"],
+    input[type="number"],
+    input[type="text"] {
+      margin-top: 0.4rem;
+      padding: 0.7rem 1rem;
+      border: 1.8px solid var(--color-border);
+      border-radius: 10px;
+      font-size: 1.1rem;
+      background: var(--color-bg);
+      color: var(--color-text);
+      transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
+      outline-offset: 2px;
+    }
+    input[type="date"]:focus,
+    input[type="number"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 8px var(--color-primary);
+    }
+    .error-msg {
+      color: var(--color-error);
+      font-weight: 500;
+      font-size: 0.85rem;
+      margin-top: 0.2rem;
+      min-height: 1.2rem;
     }
     button[type="submit"],
     #resetBtn {
-      max-width: 100%;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      padding: 0.9rem 2rem;
+      border-radius: 12px;
+      font-size: 1.15rem;
+      cursor: pointer;
+      font-weight: 700;
+      flex: 1 1 100%;
+      max-width: 240px;
+      transition: background-color 0.3s ease;
+      user-select: none;
     }
-  }
-</style>
+    button[type="submit"]:hover:not(:disabled) {
+      background: var(--color-primary-dark);
+    }
+    button[type="submit"]:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+    }
+    #resetBtn {
+      background: var(--color-error);
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      max-width: 100%;
+      font-weight: 600;
+      user-select: none;
+    }
+    #resetBtn:hover {
+      background: #c53030;
+    }
+    .charts-wrapper {
+      max-width: 640px;
+      width: 100%;
+    }
+    .chart-block {
+      margin-bottom: 3rem;
+      background: var(--color-form-bg);
+      padding: 1.3rem 1.5rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px var(--color-shadow);
+      user-select: none;
+    }
+    .chart-block h2 {
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 1rem;
+      border-left: 5px solid var(--color-primary);
+      padding-left: 0.8rem;
+      user-select: none;
+    }
+    canvas {
+      background: var(--color-chart-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(99, 99, 99, 0.07);
+      width: 100% !important;
+      max-height: 320px;
+      transition: background 0.4s ease;
+      user-select: none;
+    }
+    @media (max-width: 600px) {
+      form {
+        flex-direction: column;
+      }
+      button[type="submit"],
+      #resetBtn {
+        max-width: 100%;
+      }
+      label {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<div class="toggle-wrapper" title="Toggle dark mode">
-  <label class="toggle-label" for="darkModeToggle">Dark Mode</label>
-  <label class="toggle-switch">
-    <input type="checkbox" id="darkModeToggle" />
-    <span class="slider"></span>
-  </label>
-</div>
-
-<h1>📚 Study Time Tracker - Dr Maham </h1>
-
-<div class="container">
-  <form id="studyForm" autocomplete="off">
-    <label for="date">Date
-      <input type="date" id="date" required />
+  <div class="toggle-wrapper" title="Toggle dark mode">
+    <label for="darkModeToggle">Dark Mode</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="darkModeToggle" />
+      <span class="slider"></span>
     </label>
-    <label for="hours">Hours Studied
-      <input type="number" id="hours" min="0" step="0.1" placeholder="e.g. 2" required />
-    </label>
-    <label for="subject">Subject (optional)
-      <input type="text" id="subject" placeholder="Math, History, etc." />
-    </label>
-    <button type="submit">Add Entry</button>
-  </form>
-
-  <button id="resetBtn">Reset Data</button>
-
-  <div class="chart-container">
-    <h2>Daily Study Time (Hours)</h2>
-    <canvas id="lineChart"></canvas>
   </div>
 
-  <div class="chart-container">
-    <h2>Weekly Study Time by Subject</h2>
-    <canvas id="barChart"></canvas>
+  <h1>📚 Study Time Tracker</h1>
+
+  <div class="container">
+    <form id="studyForm" autocomplete="off" novalidate>
+      <label for="date">
+        Date
+        <input type="date" id="date" required />
+        <span class="error-msg" id="dateError"></span>
+      </label>
+      <label for="hours">
+        Hours Studied
+        <input type="number" id="hours" min="0" max="24" step="0.1" placeholder="e.g. 2" required />
+        <span class="error-msg" id="hoursError"></span>
+      </label>
+      <label for="subject">
+        Subject (optional)
+        <input type="text" id="subject" placeholder="Math, History, etc." maxlength="30" />
+        <span class="error-msg" id="subjectError"></span>
+      </label>
+      <button type="submit" id="addBtn" disabled>Add Entry</button>
+    </form>
+
+    <button id="resetBtn" title="Reset all data (password protected)">Reset Data</button>
   </div>
 
-  <div class="chart-container">
-    <h2>Monthly Total Study Time</h2>
-    <canvas id="monthlyLineChart"></canvas>
+  <div class="charts-wrapper" id="chartsWrapper">
+    <!-- Dynamic charts appear here -->
   </div>
 
-  <div class="chart-container">
-    <h2>Monthly Study Time by Subject</h2>
-    <canvas id="pieChart"></canvas>
-  </div>
-</div>
+  <script>
+    const STORAGE_KEY = 'studyData';
 
-<script>
-  const STORAGE_KEY = 'studyData';
-  let studyData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let studyData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-  const form = document.getElementById('studyForm');
-  const dateInput = document.getElementById('date');
-  const hoursInput = document.getElementById('hours');
-  const subjectInput = document.getElementById('subject');
-  const resetBtn = document.getElementById('resetBtn');
+    const form = document.getElementById('studyForm');
+    const dateInput = document.getElementById('date');
+    const hoursInput = document.getElementById('hours');
+    const subjectInput = document.getElementById('subject');
+    const addBtn = document.getElementById('addBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const dateError = document.getElementById('dateError');
+    const hoursError = document.getElementById('hoursError');
+    const subjectError = document.getElementById('subjectError');
+    const chartsWrapper = document.getElementById('chartsWrapper');
 
-  // Dark mode toggle elements
-  const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeToggle = document.getElementById('darkModeToggle');
 
-  // Initialize date input to today
-  dateInput.valueAsDate = new Date();
-
-  // Load saved theme preference
-  function loadTheme() {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      darkModeToggle.checked = true;
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      darkModeToggle.checked = false;
-    }
-  }
-
-  loadTheme();
-
-  // Listen for toggle change
-  darkModeToggle.addEventListener('change', () => {
-    if (darkModeToggle.checked) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
-  });
-
-  // Save study data
-  function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(studyData));
-  }
-
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const date = dateInput.value;
-    const hours = parseFloat(hoursInput.value);
-    const subject = subjectInput.value.trim() || 'General';
-
-    if (!date || isNaN(hours) || hours < 0) {
-      alert('Please enter valid date and hours.');
-      return;
-    }
-
-    // Add entry
-    studyData.push({ date, hours, subject });
-    saveData();
-    updateCharts();
-
-    // Reset form inputs
-    hoursInput.value = '';
-    subjectInput.value = '';
+    // Initialize date input to today
     dateInput.valueAsDate = new Date();
-  });
 
-  resetBtn.addEventListener('click', () => {
-    const pwd = prompt('Enter password to reset data:');
-    if (pwd === 'abc123') {
-      if (confirm('Are you sure you want to clear all study data?')) {
-        studyData = [];
-        localStorage.removeItem(STORAGE_KEY);
-        updateCharts();
+    // Validate inputs function
+    function validateInputs() {
+      let valid = true;
+
+      const selectedDate = new Date(dateInput.value);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      if (!dateInput.value) {
+        dateError.textContent = 'Please select a date.';
+        valid = false;
+      } else if (selectedDate > today) {
+        dateError.textContent = 'Date cannot be in the future.';
+        valid = false;
+      } else {
+        dateError.textContent = '';
       }
-    } else if (pwd !== null) {
-      alert('Incorrect password. Data not reset.');
+
+      const hoursVal = parseFloat(hoursInput.value);
+      if (hoursInput.value === '') {
+        hoursError.textContent = 'Please enter hours studied.';
+        valid = false;
+      } else if (isNaN(hoursVal) || hoursVal <= 0 || hoursVal > 24) {
+        hoursError.textContent = 'Hours must be between 0.1 and 24.';
+        valid = false;
+      } else {
+        hoursError.textContent = '';
+      }
+
+      if (subjectInput.value.length > 30) {
+        subjectError.textContent = 'Subject name too long.';
+        valid = false;
+      } else {
+        subjectError.textContent = '';
+      }
+
+      addBtn.disabled = !valid;
+      return valid;
     }
-  });
 
-  // Group data helpers
-  function groupByDate(data) {
-    return data.reduce((acc, { date, hours }) => {
-      acc[date] = (acc[date] || 0) + hours;
-      return acc;
-    }, {});
-  }
+    dateInput.addEventListener('input', validateInputs);
+    hoursInput.addEventListener('input', validateInputs);
+    subjectInput.addEventListener('input', validateInputs);
 
-  function groupByWeekAndSubject(data) {
-    // Week key = yyyy-Www, e.g. 2025-W27
-    const res = {};
-    data.forEach(({ date, hours, subject }) => {
-      const d = new Date(date);
-      const weekNumber = getWeekNumber(d);
-      const weekKey = `${d.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
-      if (!res[weekKey]) res[weekKey] = {};
-      res[weekKey][subject] = (res[weekKey][subject] || 0) + hours;
-    });
-    return res;
-  }
+    // Group data by subject, then by date
+    // Output: { subject: { date: totalHours, ... }, ... }
+    function groupDataBySubject(data) {
+      const grouped = {};
+      data.forEach(entry => {
+        const subj = entry.subject || 'Unspecified';
+        if (!grouped[subj]) grouped[subj] = {};
+        grouped[subj][entry.date] = (grouped[subj][entry.date] || 0) + entry.hours;
+      });
+      return grouped;
+    }
 
-  function groupByMonth(data) {
-    return data.reduce((acc, { date, hours }) => {
-      const d = new Date(date);
-      const monthKey = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
-      acc[monthKey] = (acc[monthKey] || 0) + hours;
-      return acc;
-    }, {});
-  }
+    // Get all unique dates from data
+    function getAllDates(data) {
+      const datesSet = new Set();
+      data.forEach(entry => {
+        datesSet.add(entry.date);
+      });
+      return Array.from(datesSet).sort((a,b) => new Date(a) - new Date(b));
+    }
 
-  function groupByMonthAndSubject(data) {
-    const res = {};
-    data.forEach(({ date, hours, subject }) => {
-      const d = new Date(date);
-      const monthKey = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
-      if (!res[monthKey]) res[monthKey] = {};
-      res[monthKey][subject] = (res[monthKey][subject] || 0) + hours;
-    });
-    return res;
-  }
-
-  // Get ISO week number (Mon-Sun week)
-  function getWeekNumber(d) {
-    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNum = date.getUTCDay() || 7;
-    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
-    return Math.ceil((((date - yearStart) / 86400000) + 1)/7);
-  }
-
-  // Color generator for charts
-  function generateColor(i) {
-    const colors = [
-      '#68d391', '#4299e1', '#ed64a6', '#f6ad55', '#9f7aea', '#fc8181', '#63b3ed', '#d69e2e', '#38b2ac', '#e53e3e',
+    // Color palette
+    const baseColors = [
+      '#3182ce', // blue
+      '#38a169', // green
+      '#dd6b20', // orange
+      '#d53f8c', // pink
+      '#718096', // gray
+      '#b7791f', // yellow-ish
+      '#805ad5', // purple
+      '#e53e3e', // red
     ];
-    return colors[i % colors.length];
-  }
-
-  // Chart instances
-  let lineChart, barChart, monthlyLineChart, pieChart;
-
-  function updateCharts() {
-    if (studyData.length === 0) {
-      // Clear charts if no data
-      if(lineChart) lineChart.destroy();
-      if(barChart) barChart.destroy();
-      if(monthlyLineChart) monthlyLineChart.destroy();
-      if(pieChart) pieChart.destroy();
-      return;
+    function getColor(index) {
+      return baseColors[index % baseColors.length];
     }
 
-    // --- Daily Line Chart ---
-    const dailyData = groupByDate(studyData);
-    const dailyLabels = Object.keys(dailyData).sort();
-    const dailyValues = dailyLabels.map(d => dailyData[d]);
+    // Keep Chart.js chart instances so we can destroy before redraw
+    let charts = [];
 
-    if (lineChart) lineChart.destroy();
-    const ctxLine = document.getElementById('lineChart').getContext('2d');
-    lineChart = new Chart(ctxLine, {
-      type: 'line',
-      data: {
-        labels: dailyLabels,
-        datasets: [{
-          label: 'Hours',
-          data: dailyValues,
-          borderColor: '#68d391',
-          backgroundColor: 'rgba(104, 211, 145, 0.3)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 5,
-        }],
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
-          x: { title: { display: true, text: 'Date' } },
-        },
-      },
-    });
+    function clearCharts() {
+      charts.forEach(c => c.destroy());
+      charts = [];
+      chartsWrapper.innerHTML = '';
+    }
 
-    // --- Weekly Bar Chart (Subjects stacked vertical bars) ---
-    const weeklyData = groupByWeekAndSubject(studyData);
-    const weeklyLabels = Object.keys(weeklyData).sort();
-    // Collect all subjects to keep consistent colors
-    const allSubjects = [...new Set(studyData.map(s => s.subject))];
+    function createChartCanvas(subject) {
+      const div = document.createElement('div');
+      div.className = 'chart-block';
 
-    const datasets = allSubjects.map((subj, idx) => {
-      return {
-        label: subj,
-        data: weeklyLabels.map(week => weeklyData[week][subj] || 0),
-        backgroundColor: generateColor(idx),
-        stack: 'stack1',
-      };
-    });
+      const title = document.createElement('h2');
+      title.textContent = subject;
+      div.appendChild(title);
 
-    if (barChart) barChart.destroy();
-    const ctxBar = document.getElementById('barChart').getContext('2d');
-    barChart = new Chart(ctxBar, {
-      type: 'bar',
-      data: {
-        labels: weeklyLabels,
-        datasets: datasets,
-      },
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            stacked: true,
-            title: { display: true, text: 'Week' },
-            grid: { color: 'transparent' }
+      const canvas = document.createElement('canvas');
+      div.appendChild(canvas);
+
+      chartsWrapper.appendChild(div);
+      return canvas.getContext('2d');
+    }
+
+    function updateCharts() {
+      clearCharts();
+
+      if (studyData.length === 0) {
+        chartsWrapper.innerHTML = '<p style="text-align:center; color: var(--color-text); font-style: italic;">No data to display. Add some study entries!</p>';
+        return;
+      }
+
+      const grouped = groupDataBySubject(studyData);
+      const allDates = getAllDates(studyData);
+
+      let subjectIndex = 0;
+      for (const subject in grouped) {
+        const ctx = createChartCanvas(subject);
+
+        // Prepare data array for this subject aligned with allDates
+        const dataPoints = allDates.map(date => grouped[subject][date] || 0);
+
+        const chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: allDates,
+            datasets: [{
+              label: subject,
+              data: dataPoints,
+              backgroundColor: getColor(subjectIndex),
+              borderRadius: 6,
+              borderSkipped: false,
+            }],
           },
-          y: {
-            stacked: true,
-            beginAtZero: true,
-            title: { display: true, text: 'Hours' },
-            grid: { color: 'rgba(0,0,0,0.05)' }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-        },
-      },
-    });
-
-    // --- Monthly Line Chart (total hours) ---
-    const monthlyData = groupByMonth(studyData);
-    const monthlyLabels = Object.keys(monthlyData).sort();
-    const monthlyValues = monthlyLabels.map(m => monthlyData[m]);
-
-    if (monthlyLineChart) monthlyLineChart.destroy();
-    const ctxMonthly = document.getElementById('monthlyLineChart').getContext('2d');
-    monthlyLineChart = new Chart(ctxMonthly, {
-      type: 'line',
-      data: {
-        labels: monthlyLabels,
-        datasets: [{
-          label: 'Total Hours',
-          data: monthlyValues,
-          borderColor: '#68d391',
-          backgroundColor: 'rgba(104, 211, 145, 0.25)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 6,
-        }],
-      },
-      options: {
-        responsive: true,
-        scales: { y: { beginAtZero: true, title: { display: true, text: 'Hours' } }, x: { title: { display: true, text: 'Month' } } },
-      },
-    });
-
-    // --- Monthly Pie Chart by Subject ---
-    const monthlySubjectData = groupByMonthAndSubject(studyData);
-    const latestMonth = monthlyLabels[monthlyLabels.length - 1];
-    const pieDataObj = monthlySubjectData[latestMonth] || {};
-
-    const pieLabels = Object.keys(pieDataObj);
-    const pieValues = pieLabels.map(subj => pieDataObj[subj]);
-    const pieColors = pieLabels.map((_, i) => generateColor(i));
-
-    if (pieChart) pieChart.destroy();
-    const ctxPie = document.getElementById('pieChart').getContext('2d');
-    pieChart = new Chart(ctxPie, {
-      type: 'pie',
-      data: {
-        labels: pieLabels,
-        datasets: [{
-          data: pieValues,
-          backgroundColor: pieColors,
-          borderWidth: 1,
-          borderColor: '#fff',
-        }],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: { padding: 15, boxWidth: 16, font: { size: 14 } },
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const label = ctx.label || '';
-                const val = ctx.parsed || 0;
-                return `${label}: ${val.toFixed(2)} hrs`;
-              },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} hr${ctx.parsed.y !== 1 ? 's' : ''}`
+                }
+              }
             },
-          },
-        },
-      },
-    });
-  }
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Date',
+                  font: { size: 14, weight: '600' }
+                },
+                ticks: {
+                  maxRotation: 90,
+                  minRotation: 45,
+                  autoSkip: true,
+                  maxTicksLimit: 10,
+                },
+                grid: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                max: 24,
+                title: {
+                  display: true,
+                  text: 'Hours Studied',
+                  font: { size: 14, weight: '600' }
+                },
+                ticks: {
+                  stepSize: 2
+                },
+                grid: {
+                  color: 'rgba(0,0,0,0.05)'
+                }
+              }
+            }
+          }
+        });
+        charts.push(chart);
+        subjectIndex++;
+      }
+    }
 
-  updateCharts();
-</script>
+    // Save data to localStorage
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(studyData));
+    }
+
+    // Add new entry handler
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (!validateInputs()) return;
+
+      const newEntry = {
+        date: dateInput.value,
+        hours: parseFloat(hoursInput.value),
+        subject: subjectInput.value.trim() || 'Unspecified',
+      };
+
+      studyData.push(newEntry);
+      saveData();
+      updateCharts();
+
+      // Clear hours and subject but keep date for convenience
+      hoursInput.value = '';
+      subjectInput.value = '';
+      validateInputs();
+    });
+
+    // Reset button
+    resetBtn.addEventListener('click', () => {
+      const pw = prompt('Enter password to reset all data:');
+      if (pw === 'reset123') {
+        studyData = [];
+        saveData();
+        updateCharts();
+        alert('All data reset.');
+      } else if (pw !== null) {
+        alert('Wrong password. Data not reset.');
+      }
+    });
+
+    // Dark mode toggle
+    function loadTheme() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      darkModeToggle.checked = theme === 'dark';
+    }
+    function saveTheme(theme) {
+      localStorage.setItem('theme', theme);
+    }
+    darkModeToggle.addEventListener('change', () => {
+      const theme = darkModeToggle.checked ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      saveTheme(theme);
+    });
+
+    // Initialize page
+    window.onload = () => {
+      loadTheme();
+      validateInputs();
+      updateCharts();
+    };
+  </script>
+
 </body>
 </html>
