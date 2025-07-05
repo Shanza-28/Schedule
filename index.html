@@ -122,9 +122,10 @@
     gap: 1.25rem 1.5rem;
     margin-bottom: 1.5rem;
     justify-content: space-between;
+    align-items: flex-end;
   }
   label {
-    flex: 1 1 200px;
+    flex: 1 1 140px;
     display: flex;
     flex-direction: column;
     font-weight: 600;
@@ -239,394 +240,383 @@ button[type="submit"]:hover {
 </head>
 <body>
 
-<!-- The entire app container to toggle visibility -->
-<div id="app" style="display:none;">
-  <div class="toggle-wrapper" title="Toggle dark mode">
-    <label class="toggle-label" for="darkModeToggle">Dark Mode</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="darkModeToggle" />
-      <span class="slider"></span>
+<div class="toggle-wrapper" title="Toggle dark mode">
+  <label class="toggle-label" for="darkModeToggle">Dark Mode</label>
+  <label class="toggle-switch">
+    <input type="checkbox" id="darkModeToggle" />
+    <span class="slider"></span>
+  </label>
+</div>
+
+<h1>📚 Study Time Tracker</h1>
+
+<div class="container">
+  <form id="studyForm" autocomplete="off">
+    <label for="date">Date
+      <input type="date" id="date" required />
     </label>
+    <label for="hours">Hours Studied
+      <input type="number" id="hours" min="0" step="1" placeholder="e.g. 2" />
+    </label>
+    <label for="minutes">Minutes Studied
+      <input type="number" id="minutes" min="0" max="59" step="1" placeholder="e.g. 30" />
+    </label>
+    <label for="subject">Subject (optional)
+      <input type="text" id="subject" placeholder="Math, History, etc." />
+    </label>
+    <button type="submit">Add Entry</button>
+  </form>
+
+  <button id="resetBtn">Reset Data</button>
+
+  <div class="chart-container">
+    <h2>Daily Study Time (Hours)</h2>
+    <canvas id="lineChart"></canvas>
   </div>
 
-  <h1>📚 Study Time Tracker</h1>
+  <div class="chart-container">
+    <h2>Weekly Study Time by Subject</h2>
+    <canvas id="barChart"></canvas>
+  </div>
 
-  <div class="container">
-    <form id="studyForm" autocomplete="off">
-      <label for="date">Date
-        <input type="date" id="date" required />
-      </label>
-      <label for="hours">Hours Studied
-        <input type="number" id="hours" min="0" step="0.1" placeholder="e.g. 2" required />
-      </label>
-      <label for="subject">Subject (optional)
-        <input type="text" id="subject" placeholder="Math, History, etc." />
-      </label>
-      <button type="submit">Add Entry</button>
-    </form>
+  <div class="chart-container">
+    <h2>Monthly Total Study Time</h2>
+    <canvas id="monthlyLineChart"></canvas>
+  </div>
 
-    <button id="resetBtn">Reset Data</button>
-
-    <div class="chart-container">
-      <h2>Daily Study Time (Hours)</h2>
-      <canvas id="lineChart"></canvas>
-    </div>
-
-    <div class="chart-container">
-      <h2>Weekly Study Time by Subject</h2>
-      <canvas id="barChart"></canvas>
-    </div>
-
-    <div class="chart-container">
-      <h2>Monthly Total Study Time</h2>
-      <canvas id="monthlyLineChart"></canvas>
-    </div>
-
-    <div class="chart-container">
-      <h2>Monthly Study Time by Subject</h2>
-      <canvas id="pieChart"></canvas>
-    </div>
+  <div class="chart-container">
+    <h2>Monthly Study Time by Subject</h2>
+    <canvas id="pieChart"></canvas>
   </div>
 </div>
 
 <script>
-  // ======= Password Gate Logic =======
-  const MASTER_ACCESS_KEY = 'mypassword2025'; // CHANGE this to your "paid user" password
-
-  // Track if user has access in localStorage so they don't need to enter again
-  const ACCESS_GRANTED_KEY = 'studyAppAccessGranted';
-
-  function askPassword() {
-    let attempts = 3;
-    while (attempts > 0) {
-      const input = prompt('Enter your access password:');
-      if (input === null) {
-        alert('Access denied: password required.');
-        attempts = 0;
-        break;
-      }
-      if (input === MASTER_ACCESS_KEY) {
-        localStorage.setItem(ACCESS_GRANTED_KEY, 'true');
-        return true;
-      }
-      attempts--;
-      alert(`Incorrect password. ${attempts} attempt(s) left.`);
-    }
-    return false;
+  // Dark mode toggle
+  const toggle = document.getElementById('darkModeToggle');
+  const currentTheme = localStorage.getItem('theme');
+  if (currentTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    toggle.checked = true;
   }
-
-  function checkAccess() {
-    if (localStorage.getItem(ACCESS_GRANTED_KEY) === 'true') {
-      return true;
-    }
-    return askPassword();
-  }
-
-  // If access denied, do nothing more
-  if (!checkAccess()) {
-    document.body.innerHTML = '<h1 style="color:#e53e3e; text-align:center; margin-top: 3rem;">Access Denied</h1>';
-  } else {
-    document.getElementById('app').style.display = 'block';
-
-    // ====== Existing Code Starts Here ======
-    const form = document.getElementById('studyForm');
-    const dateInput = document.getElementById('date');
-    const hoursInput = document.getElementById('hours');
-    const subjectInput = document.getElementById('subject');
-    const resetBtn = document.getElementById('resetBtn');
-
-    // Dark Mode toggle
-    const darkModeToggle = document.getElementById('darkModeToggle');
-
-    // Load dark mode preference
-    if(localStorage.getItem('darkMode') === 'enabled'){
+  toggle.addEventListener('change', () => {
+    if (toggle.checked) {
       document.documentElement.setAttribute('data-theme', 'dark');
-      darkModeToggle.checked = true;
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    }
+  });
+
+  const form = document.getElementById('studyForm');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let studyData = JSON.parse(localStorage.getItem('studyData')) || [];
+
+  // Utilities for date formatting
+  function formatDate(d) {
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Add entry to data
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const dateInput = document.getElementById('date').value;
+    let hours = parseInt(document.getElementById('hours').value, 10);
+    let minutes = parseInt(document.getElementById('minutes').value, 10);
+    const subject = document.getElementById('subject').value.trim();
+
+    if (!dateInput) {
+      alert('Please enter a date.');
+      return;
+    }
+    hours = isNaN(hours) ? 0 : hours;
+    minutes = isNaN(minutes) ? 0 : minutes;
+    if (minutes < 0 || minutes > 59) {
+      alert('Minutes must be between 0 and 59.');
+      return;
     }
 
-    darkModeToggle.addEventListener('change', () => {
-      if (darkModeToggle.checked) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('darkMode', 'enabled');
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('darkMode', 'disabled');
-      }
+    const totalHours = hours + minutes / 60;
+    if (totalHours <= 0) {
+      alert('Please enter a positive study time (hours or minutes).');
+      return;
+    }
+
+    // Add new entry or merge if same date+subject exists
+    let existingEntry = studyData.find(
+      entry => entry.date === dateInput && entry.subject.toLowerCase() === subject.toLowerCase()
+    );
+    if (existingEntry) {
+      existingEntry.hours += totalHours;
+    } else {
+      studyData.push({
+        date: dateInput,
+        hours: totalHours,
+        subject: subject || 'General'
+      });
+    }
+
+    saveAndUpdate();
+    form.reset();
+    document.getElementById('date').focus();
+  });
+
+  // Reset data with password prompt
+  resetBtn.addEventListener('click', () => {
+    const pw = prompt('Enter password to reset data:');
+    if (pw === 'abc123') {
+      studyData = [];
+      saveAndUpdate();
+      alert('Data reset successfully!');
+    } else if (pw !== null) {
+      alert('Incorrect password.');
+    }
+  });
+
+  function saveAndUpdate() {
+    localStorage.setItem('studyData', JSON.stringify(studyData));
+    updateCharts();
+  }
+
+  // Helper: get week key string from date
+  function getWeekKey(date) {
+    // Returns YYYY-WW (ISO week)
+    const d = new Date(date);
+    const target = new Date(d.valueOf());
+    const dayNr = (d.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) {
+      target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    }
+    const weekNumber = 1 + Math.round((firstThursday - target) / (7 * 86400000));
+    return `${d.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+  }
+
+  // Helper: get month key string from date
+  function getMonthKey(date) {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+  }
+
+  // Chart instances
+  let lineChart, barChart, monthlyLineChart, pieChart;
+
+  // Update all charts
+  function updateCharts() {
+    if (studyData.length === 0) {
+      clearCharts();
+      return;
+    }
+
+    // === Line chart: Daily total hours (all subjects combined) ===
+    const dailyMap = new Map();
+    studyData.forEach(({ date, hours }) => {
+      dailyMap.set(date, (dailyMap.get(date) || 0) + hours);
     });
+    const dailyDates = Array.from(dailyMap.keys()).sort();
+    const dailyHours = dailyDates.map(d => dailyMap.get(d));
 
-    // Validate and initialize date input to today
-    function formatDate(date) {
-      return date.toISOString().split('T')[0];
-    }
-    dateInput.value = formatDate(new Date());
-
-    // Study log storage key
-    const STORAGE_KEY = 'studyLogs';
-
-    // Get logs from localStorage or empty array
-    function getLogs() {
-      const logs = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      return logs ? logs : [];
-    }
-
-    // Save logs to localStorage
-    function saveLogs(logs) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-    }
-
-    // Add a log entry
-    function addLog(date, hours, subject) {
-      const logs = getLogs();
-      logs.push({ date, hours, subject });
-      saveLogs(logs);
-    }
-
-    // Reset data with password
-    resetBtn.addEventListener('click', () => {
-      const resetPassword = prompt('Enter password to reset data:');
-      if (resetPassword === 'abc123') {
-        localStorage.removeItem(STORAGE_KEY);
-        alert('Data reset successfully.');
-        location.reload();
-      } else {
-        alert('Incorrect reset password.');
-      }
-    });
-
-    // Handle form submission
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-
-      const date = dateInput.value;
-      const hours = parseFloat(hoursInput.value);
-      const subject = subjectInput.value.trim();
-
-      if (!date) {
-        alert('Please select a valid date.');
-        return;
-      }
-      if (isNaN(hours) || hours <= 0) {
-        alert('Please enter a valid number of hours greater than 0.');
-        return;
-      }
-
-      addLog(date, hours, subject);
-      alert('Entry added.');
-
-      // Reset form fields
-      hoursInput.value = '';
-      subjectInput.value = '';
-      dateInput.value = formatDate(new Date());
-
-      // Update charts
-      updateCharts();
-    });
-
-    // ========== Chart Setup ==========
-
-    // Create charts
     const lineCtx = document.getElementById('lineChart').getContext('2d');
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: dailyDates,
+        datasets: [{
+          label: 'Hours',
+          data: dailyHours,
+          fill: true,
+          backgroundColor: 'rgba(49,130,206,0.2)',
+          borderColor: 'rgba(49,130,206,1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
+          x: { title: { display: true, text: 'Date' } }
+        },
+        plugins: {
+          legend: { display: true },
+          tooltip: { mode: 'index', intersect: false }
+        }
+      }
+    });
+
+    // === Bar chart: Weekly study time by subject (grouped bars) ===
+    // Build map: week -> subject -> total hours
+    const weeklyMap = new Map();
+    const subjectsSet = new Set();
+    studyData.forEach(({ date, hours, subject }) => {
+      const week = getWeekKey(date);
+      subjectsSet.add(subject);
+      if (!weeklyMap.has(week)) weeklyMap.set(week, new Map());
+      const subjMap = weeklyMap.get(week);
+      subjMap.set(subject, (subjMap.get(subject) || 0) + hours);
+    });
+
+    // Sort weeks ascending
+    const weeks = Array.from(weeklyMap.keys()).sort();
+
+    // Prepare dataset per subject with data aligned to weeks
+    const subjects = Array.from(subjectsSet).sort();
+    const colors = generateColors(subjects.length);
+
+    const barDatasets = subjects.map((subj, i) => {
+      return {
+        label: subj,
+        data: weeks.map(w => {
+          const subjMap = weeklyMap.get(w);
+          return subjMap.get(subj) || 0;
+        }),
+        backgroundColor: colors[i],
+        borderRadius: 6
+      };
+    });
+
     const barCtx = document.getElementById('barChart').getContext('2d');
+    if (barChart) barChart.destroy();
+    barChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: weeks,
+        datasets: barDatasets
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
+          x: {
+            title: { display: true, text: 'Week' },
+            stacked: false
+          }
+        },
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { mode: 'index', intersect: false }
+        }
+      }
+    });
+
+    // === Monthly line chart: total hours per month ===
+    const monthlyMap = new Map();
+    studyData.forEach(({ date, hours }) => {
+      const month = getMonthKey(date);
+      monthlyMap.set(month, (monthlyMap.get(month) || 0) + hours);
+    });
+    const months = Array.from(monthlyMap.keys()).sort();
+    const monthlyTotals = months.map(m => monthlyMap.get(m));
+
     const monthlyLineCtx = document.getElementById('monthlyLineChart').getContext('2d');
-    const pieCtx = document.getElementById('pieChart').getContext('2d');
-
-    let lineChart, barChart, monthlyLineChart, pieChart;
-
-    function createLineChart(labels, data) {
-      if (lineChart) lineChart.destroy();
-      lineChart = new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Hours Studied',
-            data,
-            borderColor: 'var(--color-primary)',
-            backgroundColor: 'rgba(49,130,206,0.25)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-          }]
+    if (monthlyLineChart) monthlyLineChart.destroy();
+    monthlyLineChart = new Chart(monthlyLineCtx, {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Total Hours',
+          data: monthlyTotals,
+          fill: true,
+          backgroundColor: 'rgba(99,179,130,0.3)',
+          borderColor: 'rgba(56,161,105,1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          tension: 0.25
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
+          x: { title: { display: true, text: 'Month' } }
         },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Hours' }
-            },
-            x: {
-              title: { display: true, text: 'Date' }
-            }
-          },
-          plugins: {
-            legend: { display: true }
-          }
+        plugins: {
+          legend: { display: true },
+          tooltip: { mode: 'index', intersect: false }
+        }
+      }
+    });
+
+    // === Pie chart: monthly study time by subject (last month) ===
+    // Use latest month available
+    const lastMonth = months[months.length - 1];
+    if (lastMonth) {
+      // Aggregate subjects for that month
+      const subjectMonthlyMap = new Map();
+      studyData.forEach(({ date, hours, subject }) => {
+        if (getMonthKey(date) === lastMonth) {
+          subjectMonthlyMap.set(subject, (subjectMonthlyMap.get(subject) || 0) + hours);
         }
       });
-    }
+      const pieLabels = Array.from(subjectMonthlyMap.keys()).sort();
+      const pieData = pieLabels.map(s => subjectMonthlyMap.get(s));
+      const pieColors = generateColors(pieLabels.length);
 
-    function createBarChart(labels, datasets) {
-      if (barChart) barChart.destroy();
-      barChart = new Chart(barCtx, {
-        type: 'bar',
-        data: { labels, datasets },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Hours' }
-            },
-            x: {
-              title: { display: true, text: 'Weekday' }
-            }
-          },
-          plugins: {
-            legend: { position: 'top' }
-          }
-        }
-      });
-    }
-
-    function createMonthlyLineChart(labels, data) {
-      if (monthlyLineChart) monthlyLineChart.destroy();
-      monthlyLineChart = new Chart(monthlyLineCtx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Total Hours',
-            data,
-            borderColor: 'var(--color-primary-dark)',
-            backgroundColor: 'rgba(66,153,225,0.3)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Hours' }
-            },
-            x: {
-              title: { display: true, text: 'Month' }
-            }
-          }
-        }
-      });
-    }
-
-    function createPieChart(labels, data) {
+      const pieCtx = document.getElementById('pieChart').getContext('2d');
       if (pieChart) pieChart.destroy();
       pieChart = new Chart(pieCtx, {
         type: 'pie',
         data: {
-          labels,
+          labels: pieLabels,
           datasets: [{
-            label: 'Hours',
-            data,
-            backgroundColor: [
-              '#3182ce', '#63b3ed', '#63a69f', '#9f63b3', '#b3639f', '#d53f8c',
-              '#ed64a6', '#f6ad55', '#ed8936', '#48bb78', '#38a169', '#2f855a',
-            ],
-            borderColor: '#fff',
-            borderWidth: 2
+            data: pieData,
+            backgroundColor: pieColors
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            legend: { position: 'right' }
+            legend: { position: 'right' },
+            title: {
+              display: true,
+              text: `Subject Distribution in ${lastMonth}`
+            }
           }
         }
       });
+    } else {
+      if (pieChart) pieChart.destroy();
     }
-
-    // ========== Data Processing for Charts ==========
-    function updateCharts() {
-      const logs = getLogs();
-
-      if (logs.length === 0) {
-        // No data, clear charts
-        if(lineChart) lineChart.clear();
-        if(barChart) barChart.clear();
-        if(monthlyLineChart) monthlyLineChart.clear();
-        if(pieChart) pieChart.clear();
-        return;
-      }
-
-      // Sort logs by date ascending
-      logs.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      // -------- Line Chart: daily total hours --------
-      const dailyMap = {};
-      logs.forEach(({date, hours}) => {
-        dailyMap[date] = (dailyMap[date] || 0) + hours;
-      });
-      const dailyLabels = Object.keys(dailyMap);
-      const dailyData = Object.values(dailyMap);
-      createLineChart(dailyLabels, dailyData);
-
-      // -------- Bar Chart: weekly study time by subject --------
-      // For simplicity, weekdays as labels:
-      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      // We'll group by weekday and subject
-      // Example: { Math: [hours on Sun, Mon, ... Sat], History: [...] }
-      const subjectWeekdayMap = {};
-      logs.forEach(({date, hours, subject}) => {
-        const dayIndex = new Date(date).getDay();
-        const subj = subject || 'No Subject';
-        if (!subjectWeekdayMap[subj]) {
-          subjectWeekdayMap[subj] = new Array(7).fill(0);
-        }
-        subjectWeekdayMap[subj][dayIndex] += hours;
-      });
-      const datasets = Object.entries(subjectWeekdayMap).map(([subject, data], i) => {
-        const colors = [
-          '#3182ce', '#63b3ed', '#63a69f', '#9f63b3', '#b3639f',
-          '#d53f8c', '#ed64a6', '#f6ad55', '#ed8936', '#48bb78',
-        ];
-        return {
-          label: subject,
-          data,
-          backgroundColor: colors[i % colors.length]
-        };
-      });
-      createBarChart(weekdays, datasets);
-
-      // -------- Monthly total study time --------
-      // Group by YYYY-MM
-      const monthlyMap = {};
-      logs.forEach(({date, hours}) => {
-        const month = date.slice(0,7);
-        monthlyMap[month] = (monthlyMap[month] || 0) + hours;
-      });
-      const monthlyLabels = Object.keys(monthlyMap).sort();
-      const monthlyData = monthlyLabels.map(month => monthlyMap[month]);
-      createMonthlyLineChart(monthlyLabels, monthlyData);
-
-      // -------- Monthly study time by subject (pie) --------
-      // Aggregate total hours by subject
-      const subjectTotals = {};
-      logs.forEach(({hours, subject}) => {
-        const subj = subject || 'No Subject';
-        subjectTotals[subj] = (subjectTotals[subj] || 0) + hours;
-      });
-      const pieLabels = Object.keys(subjectTotals);
-      const pieData = Object.values(subjectTotals);
-      createPieChart(pieLabels, pieData);
-    }
-
-    // Initial update
-    updateCharts();
   }
+
+  // Clear charts if no data
+  function clearCharts() {
+    if (lineChart) lineChart.destroy();
+    if (barChart) barChart.destroy();
+    if (monthlyLineChart) monthlyLineChart.destroy();
+    if (pieChart) pieChart.destroy();
+  }
+
+  // Generate distinct colors (pastel palette)
+  function generateColors(count) {
+    const baseHueStep = 360 / count;
+    const colors = [];
+    for (let i = 0; i < count; i++) {
+      const hue = i * baseHueStep;
+      colors.push(`hsl(${hue}, 70%, 60%)`);
+    }
+    return colors;
+  }
+
+  // Initialize form date to today
+  function setTodayDate() {
+    const today = new Date();
+    document.getElementById('date').value = formatDate(today);
+  }
+
+  // Initialization
+  setTodayDate();
+  updateCharts();
 </script>
 </body>
 </html>
+
 
