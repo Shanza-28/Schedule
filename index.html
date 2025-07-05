@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
+  /* Same styling as before */
   :root {
     --color-bg: #fefefe;
     --color-bg-gradient: linear-gradient(135deg, #f9fafb 0%, #e2e8f0 100%);
@@ -132,82 +133,80 @@
     font-size: 0.95rem;
     color: var(--color-text);
   }
-/* Existing styles (unchanged) */
-input[type="date"],
-input[type="number"],
-input[type="text"] {
-  margin-top: 0.4rem;
-  padding: 0.6rem 0.75rem;
-  border: 1.8px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 1rem;
-  background: var(--color-bg);
-  color: var(--color-text);
-  transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
-}
-
-input[type="date"]:focus,
-input[type="number"]:focus,
-input[type="text"]:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 6px var(--color-primary);
-}
-
-button[type="submit"],
-#resetBtn {
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 0.8rem 1.8rem;
-  border-radius: 10px;
-  font-size: 1.05rem;
-  cursor: pointer;
-  flex: 1 1 100%;
-  max-width: 240px;
-  font-weight: 600;
-  transition: background-color 0.25s ease;
-  align-self: flex-end;
-}
-
-button[type="submit"]:hover {
-  background: var(--color-primary-dark);
-}
-
-#resetBtn {
-  background: var(--color-error);
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-}
-
-#resetBtn:hover {
-  background: #c53030;
-}
-
-/* ✅ Responsive enhancements */
-@media screen and (max-width: 600px) {
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem; 
-  }
-
   input[type="date"],
   input[type="number"],
-  input[type="text"],
-  button[type="submit"],
-  #resetBtn {
-    margin-top :0px;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
+  input[type="text"] {
+    margin-top: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    border: 1.8px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 1rem;
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
+  }
+
+  input[type="date"]:focus,
+  input[type="number"]:focus,
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 6px var(--color-primary);
   }
 
   button[type="submit"],
   #resetBtn {
-    align-self: stretch;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.8rem;
+    border-radius: 10px;
+    font-size: 1.05rem;
+    cursor: pointer;
+    flex: 1 1 100%;
+    max-width: 240px;
+    font-weight: 600;
+    transition: background-color 0.25s ease;
+    align-self: flex-end;
   }
-}
+
+  button[type="submit"]:hover {
+    background: var(--color-primary-dark);
+  }
+
+  #resetBtn {
+    background: var(--color-error);
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  #resetBtn:hover {
+    background: #c53030;
+  }
+
+  @media screen and (max-width: 600px) {
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem; 
+    }
+
+    input[type="date"],
+    input[type="number"],
+    input[type="text"],
+    button[type="submit"],
+    #resetBtn {
+      margin-top :0px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    button[type="submit"],
+    #resetBtn {
+      align-self: stretch;
+    }
+  }
 
   .chart-container {
     margin-bottom: 3rem;
@@ -227,15 +226,6 @@ button[type="submit"]:hover {
     max-height: 350px;
     transition: background 0.4s ease;
   }
-  @media (max-width: 600px) {
-    form {
-      flex-direction: column;
-    }
-    button[type="submit"],
-    #resetBtn {
-      max-width: 100%;
-    }
-  }
 </style>
 </head>
 <body>
@@ -253,10 +243,10 @@ button[type="submit"]:hover {
 <div class="container">
   <form id="studyForm" autocomplete="off">
     <label for="date">Date
-      <input type="date" id="date" required />
+      <input type="date" id="date" max="" required />
     </label>
     <label for="hours">Hours Studied
-      <input type="number" id="hours" min="0" step="1" placeholder="e.g. 2" />
+      <input type="number" id="hours" min="0" max="24" step="1" placeholder="e.g. 2" />
     </label>
     <label for="minutes">Minutes Studied
       <input type="number" id="minutes" min="0" max="59" step="1" placeholder="e.g. 30" />
@@ -318,20 +308,39 @@ button[type="submit"]:hover {
     return d.toISOString().slice(0, 10);
   }
 
-  // Add entry to data
+  // Initialize the max attribute of date input to today (prevents future dates)
+  function setDateMaxToToday() {
+    const todayStr = formatDate(new Date());
+    document.getElementById('date').max = todayStr;
+  }
+
+  // Add entry to data with validations
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+
     const dateInput = document.getElementById('date').value;
     let hours = parseInt(document.getElementById('hours').value, 10);
     let minutes = parseInt(document.getElementById('minutes').value, 10);
-    const subject = document.getElementById('subject').value.trim();
+    const subjectInput = document.getElementById('subject').value.trim();
 
     if (!dateInput) {
       alert('Please enter a date.');
       return;
     }
+    // Check future date again as fallback
+    const todayStr = formatDate(new Date());
+    if (dateInput > todayStr) {
+      alert('Date cannot be in the future.');
+      return;
+    }
+
     hours = isNaN(hours) ? 0 : hours;
     minutes = isNaN(minutes) ? 0 : minutes;
+
+    if (hours < 0 || hours > 24) {
+      alert('Hours must be between 0 and 24.');
+      return;
+    }
     if (minutes < 0 || minutes > 59) {
       alert('Minutes must be between 0 and 59.');
       return;
@@ -343,17 +352,33 @@ button[type="submit"]:hover {
       return;
     }
 
-    // Add new entry or merge if same date+subject exists
-    let existingEntry = studyData.find(
-      entry => entry.date === dateInput && entry.subject.toLowerCase() === subject.toLowerCase()
+    // Check that total time for the date (all subjects) <= 24
+    // Calculate current total for that date except new entry's subject (in case of update)
+    let currentDateTotal = 0;
+    studyData.forEach(entry => {
+      if (entry.date === dateInput) currentDateTotal += entry.hours;
+    });
+
+    // Check if this entry updates an existing subject entry (date + subject)
+    const subj = subjectInput || 'General';
+    const existingEntry = studyData.find(
+      entry => entry.date === dateInput && entry.subject.toLowerCase() === subj.toLowerCase()
     );
+    const currentEntryHours = existingEntry ? existingEntry.hours : 0;
+    // New total would be: currentDateTotal - currentEntryHours + totalHours
+    if ((currentDateTotal - currentEntryHours + totalHours) > 24) {
+      alert('Total study time for the day cannot exceed 24 hours.');
+      return;
+    }
+
+    // Add new entry or update existing
     if (existingEntry) {
-      existingEntry.hours += totalHours;
+      existingEntry.hours = totalHours;
     } else {
       studyData.push({
         date: dateInput,
         hours: totalHours,
-        subject: subject || 'General'
+        subject: subj
       });
     }
 
@@ -379,9 +404,8 @@ button[type="submit"]:hover {
     updateCharts();
   }
 
-  // Helper: get week key string from date
+  // Helper: get week key string from date (ISO week)
   function getWeekKey(date) {
-    // Returns YYYY-WW (ISO week)
     const d = new Date(date);
     const target = new Date(d.valueOf());
     const dayNr = (d.getDay() + 6) % 7;
@@ -451,7 +475,6 @@ button[type="submit"]:hover {
     });
 
     // === Bar chart: Weekly study time by subject (grouped bars) ===
-    // Build map: week -> subject -> total hours
     const weeklyMap = new Map();
     const subjectsSet = new Set();
     studyData.forEach(({ date, hours, subject }) => {
@@ -462,24 +485,19 @@ button[type="submit"]:hover {
       subjMap.set(subject, (subjMap.get(subject) || 0) + hours);
     });
 
-    // Sort weeks ascending
     const weeks = Array.from(weeklyMap.keys()).sort();
-
-    // Prepare dataset per subject with data aligned to weeks
     const subjects = Array.from(subjectsSet).sort();
     const colors = generateColors(subjects.length);
 
-    const barDatasets = subjects.map((subj, i) => {
-      return {
-        label: subj,
-        data: weeks.map(w => {
-          const subjMap = weeklyMap.get(w);
-          return subjMap.get(subj) || 0;
-        }),
-        backgroundColor: colors[i],
-        borderRadius: 6
-      };
-    });
+    const barDatasets = subjects.map((subj, i) => ({
+      label: subj,
+      data: weeks.map(w => {
+        const subjMap = weeklyMap.get(w);
+        return subjMap.get(subj) || 0;
+      }),
+      backgroundColor: colors[i],
+      borderRadius: 6
+    }));
 
     const barCtx = document.getElementById('barChart').getContext('2d');
     if (barChart) barChart.destroy();
@@ -546,10 +564,8 @@ button[type="submit"]:hover {
     });
 
     // === Pie chart: monthly study time by subject (last month) ===
-    // Use latest month available
     const lastMonth = months[months.length - 1];
     if (lastMonth) {
-      // Aggregate subjects for that month
       const subjectMonthlyMap = new Map();
       studyData.forEach(({ date, hours, subject }) => {
         if (getMonthKey(date) === lastMonth) {
@@ -577,13 +593,14 @@ button[type="submit"]:hover {
             legend: { position: 'right' },
             title: {
               display: true,
-              text: `Subject Distribution in ${lastMonth}`
+              text: `Study Time by Subject for ${lastMonth}`
             }
           }
         }
       });
     } else {
       if (pieChart) pieChart.destroy();
+      document.getElementById('pieChart').getContext('2d').clearRect(0, 0, 400, 400);
     }
   }
 
@@ -595,28 +612,26 @@ button[type="submit"]:hover {
     if (pieChart) pieChart.destroy();
   }
 
-  // Generate distinct colors (pastel palette)
+  // Utility: generate array of distinct colors
   function generateColors(count) {
-    const baseHueStep = 360 / count;
+    const baseColors = [
+      '#3182ce', '#e53e3e', '#d69e2e', '#38a169', '#805ad5', '#dd6b20', '#718096', '#2b6cb0', '#9f7aea', '#f6ad55'
+    ];
     const colors = [];
     for (let i = 0; i < count; i++) {
-      const hue = i * baseHueStep;
-      colors.push(`hsl(${hue}, 70%, 60%)`);
+      colors.push(baseColors[i % baseColors.length]);
     }
     return colors;
   }
 
-  // Initialize form date to today
-  function setTodayDate() {
-    const today = new Date();
-    document.getElementById('date').value = formatDate(today);
-  }
-
   // Initialization
-  setTodayDate();
+  setDateMaxToToday();
   updateCharts();
+
 </script>
+
 </body>
 </html>
+
 
 
